@@ -1,77 +1,74 @@
 pipeline {
     agent any
-    tools {
-        maven "MAVEN3.9"
-        jdk "JDK17"
-    }
 
-    environment {
-        
-        SNAP_REPO = 'vprofile-snapshot'
-        NEXUS_USER = 'admin'
-        NEXUS_PASS = 'Sonarqube@440'
-        RELEASE_REPO = 'vprofile-release'
-        CENTRAL_REPO = 'vpro-maven-central'
-        NEXUSIP = '10.0.0.139'
-        NEXUSPORT = '8081'
-        NEXUS_GRP_REPO = 'vpro-maven-group'
-        NEXUS_LOGIN = 'nexuslogin'
-        SONARSERVER = 'sonarserver'
-        SONARSCANNER = 'sonarscanner'
-    }
+    tools {
+        maven "MAVEN3.9"
+        jdk "JDK17"
+    }
 
-    stages {
-        stage('Build'){
-            steps {
-                sh 'mvn -s settings.xml -DskipTests install'
-            }
-            post {
-                success {
-                    echo 'Now Archiving...'
-                    archiveArtifacts artifacts: '**/target/*.war'
-                }
-            }
-        }
+    environment {
+        SNAP_REPO = 'vprofile-snapshot'
+        NEXUS_USER = 'admin'
+        NEXUS_PASS = 'Sonarqube@440'
+        RELEASE_REPO = 'vprofile-release'
+        CENTRAL_REPO = 'vpro-maven-central'
+        NEXUSIP = '10.0.9.122'
+        NEXUSPORT = '8081'
+        NEXUS_GRP_REPO = 'vpro-maven-group'
+        NEXUS_LOGIN = 'nexuslogin'
+        SONARSERVER = 'sonarserver'
+        SONARSCANNER = 'sonarscanner'
+    }
 
-        stage('UNIT TEST'){
-            steps {
-                sh 'mvn -s settings.xml test'
-            }
-        }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+            post {
+                success {
+                    echo 'Now Archiving...'
+                    archiveArtifacts artifacts: '**/target/*.war'
+                }
+            }
+        }
 
-        stage ('CODE ANALYSIS WITH CHECKSTYLE'){
-            steps {
-                sh 'mvn -s settings.xml checkstyle:checkstyle' 
-            }
-        }
+        stage('UNIT TEST') {
+            steps {
+                sh 'mvn test'
+            }
+        }
 
-        stage('SONAR ANALYSIS') {
-          
-            environment {
-                scannerHome = tool "${SONARSCANNER}"
-            }
+        stage('CODE ANALYSIS WITH CHECKSTYLE') {
+            steps {
+                sh 'mvn checkstyle:checkstyle'
+            }
+        }
 
-            steps {
-                withSonarQubeEnv("${SONARSERVER}") {
-                   sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
-                   -Dsonar.projectName=vprofile \
-                   -Dsonar.projectVersion=1.0 \
-                   -Dsonar.sources=src/ \
-                   -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
-                   -Dsonar.junit.reportsPath=target/surefire-reports/ \
-                   -Dsonar.jacoco.reportsPath=target/jacoco.exec \
-                   -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
-                }
-            }
-        }
+        stage('SONAR ANALYSIS') {
+            steps {
+                withSonarQubeEnv("${SONARSERVER}") {
+                    sh '''
+                    sonar-scanner \
+                      -Dsonar.projectKey=vprofile \
+                      -Dsonar.projectName=vprofile \
+                      -Dsonar.projectVersion=1.0 \
+                      -Dsonar.sources=src/ \
+                      -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
+                      -Dsonar.junit.reportsPath=target/surefire-reports/ \
+                      -Dsonar.jacoco.reportsPath=target/jacoco.exec \
+                      -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml
+                    '''
+                }
+            }
+        }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 1, unit: 'HOURS') {
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
-            }
-        }
-
-    }
+            }
+        }
+    }
 }
