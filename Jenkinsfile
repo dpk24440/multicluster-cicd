@@ -1,17 +1,19 @@
 pipeline {
     agent any
     tools {
-        maven "MAVEN3.9"
-        jdk "JDK17"
+        maven "MAVEN3"
+        jdk "OracleJDK8"
+
     }
 
     environment {
+ 
         SNAP_REPO = 'vprofile-snapshot'
         NEXUS_USER = 'admin'
         NEXUS_PASS = 'Sonarqube@440'
         RELEASE_REPO = 'vprofile-release'
         CENTRAL_REPO = 'vpro-maven-central'
-        NEXUSIP = '10.0.0.183'
+        NEXUSIP = '10.0.0.3'
         NEXUSPORT = '8081'
         NEXUS_GRP_REPO = 'vpro-maven-group'
         NEXUS_LOGIN = 'nexuslogin'
@@ -20,32 +22,32 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
+        stage('Build'){
             steps {
                 sh 'mvn -s settings.xml -DskipTests install'
             }
-            post {
+        }
                 success {
                     echo 'Now Archiving...'
                     archiveArtifacts artifacts: '**/target/*.war'
                 }
-            }
-        }
+    
 
-        stage('UNIT TEST') {
+
+        stage('UNIT TEST'){
             steps {
                 sh 'mvn -s settings.xml test'
             }
         }
 
-        stage('CHECKSTYLE CodeAnalysis') {
+        stage('CHECKSTYLE CodeAnalysis'){
             steps {
-                sh 'mvn -s settings.xml checkstyle:checkstyle'
+                sh 'mvn -s settings.xml checkstyle:checkstyle' 
             }
         }
 
         stage('SONARQUBE ANALYSIS') {
-
+ 
             environment {
                 scannerHome = tool "${SONARSCANNER}"
             }
@@ -64,35 +66,35 @@ pipeline {
                 }
             }
         }
-
         stage('Quality Gate') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
+                    // Parameter indicates whether to set pipeline to unstable
+                    // true = set pipeline to Unstable, false = don't
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        stage('Upload Artifact') {
+        stage('upload artifact') {
             steps {
                 nexusArtifactUploader(
                     nexusVersion: 'nexus3',
                     protocol: 'http',
-                    nexusUrl: "http://${NEXUSIP}:${NEXUSPORT}",
+                    nexusUrl: "${NEXUSIP}:${NEXUSPORT}",
                     groupId: 'QA',
-                    version: "${env.BUILD_ID}-${currentBuild.startTimeInMillis}",
+                    version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
                     repository: "${RELEASE_REPO}",
                     credentialsId: "${NEXUS_LOGIN}",
                     artifacts: [
-                        [
-                            artifactId: 'vproapp',
-                            classifier: '',
-                            file: 'target/vprofile-v2.war',
-                            type: 'jar'
-                        ]
+                      [artifactId: 'vproapp',
+                       classifier: '',
+                       file: 'target/vprofile-v2.war',
+                       type: 'jar']
                     ]
                 )
             }
         }
     }
+
 }
