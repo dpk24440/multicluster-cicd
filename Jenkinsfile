@@ -1,8 +1,8 @@
 pipeline {
     agent any
     tools {
-        maven "MAVEN3"
-        jdk "OracleJDK8"
+        maven "MAVEN3.9"
+        jdk "JDK17"
 
     }
 
@@ -13,7 +13,7 @@ pipeline {
         NEXUS_PASS = 'Sonarqube@440'
         RELEASE_REPO = 'vprofile-release'
         CENTRAL_REPO = 'vpro-maven-central'
-        NEXUSIP = '10.0.0.3'
+        NEXUSIP = '10.0.9.122'
         NEXUSPORT = '8081'
         NEXUS_GRP_REPO = 'vpro-maven-group'
         NEXUS_LOGIN = 'nexuslogin'
@@ -69,8 +69,6 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    // Parameter indicates whether to set pipeline to unstable
-                    // true = set pipeline to Unstable, false = don't
                     waitForQualityGate abortPipeline: true
                 }
             }
