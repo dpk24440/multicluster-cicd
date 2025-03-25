@@ -22,6 +22,11 @@ pipeline {
         registryCredential = 'ecr:ap-northeast-1:awscreds'
         appRegistry = '299119787392.dkr.ecr.ap-northeast-1.amazonaws.com/vprofileappimg'
         vprofileRegistry = "https://299119787392.dkr.ecr.ap-northeast-1.amazonaws.com"
+        CHART_PATH = 'helm/vprofilecharts'
+        NAMESPACE = 'default'
+        RELEASE_NAME = 'kubeproj-stack'
+        EKS_CLUSTER = 'vprofile'
+        AWS_REGION = 'ap-northeast-1' 
 
     }
 
@@ -118,6 +123,65 @@ pipeline {
                     }
  
                 }
+            }
+        }
+
+        stage('Install AWS CLI') {
+            steps {
+                sh '''
+                sudo apt-get update
+                sudo apt-get install -y awscli
+                '''
+            }
+        }
+
+        stage('Install kubectl') {
+            steps {
+                sh '''
+                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                chmod +x kubectl
+                sudo mv kubectl /usr/local/bin/
+                '''
+            }
+        }
+
+        stage('Install Helm') {
+            steps {
+                sh '''
+                curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+                chmod 700 get_helm.sh
+                ./get_helm.sh
+                '''
+            }
+        }
+
+        stage('Configure kubectl for EKS') {
+            steps {
+                sh '''
+                aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+                '''
+            }
+        }
+
+        stage('Verify Kubernetes Connection') {
+            steps {
+                sh 'kubectl get nodes'
+            }
+        }
+
+        stage('Deploy Helm Chart') {
+            steps {
+                sh '''
+                helm upgrade --install $RELEASE_NAME $CHART_PATH \
+                --namespace $NAMESPACE \
+                --set appimage=$appRegistry,apptag=$BUILD_NUMBER
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'kubectl get pods -n $NAMESPACE'
             }
         }
 
