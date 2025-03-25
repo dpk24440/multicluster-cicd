@@ -127,12 +127,27 @@ pipeline {
         }
 
 
+        stage('Install kubectl') {
+            steps {
+                sh '''
+                mkdir -p $HOME/bin
+                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                chmod +x kubectl
+                mv kubectl $HOME/bin/
+                export PATH=$HOME/bin:$PATH
+                echo "export PATH=$HOME/bin:$PATH" >> ~/.bashrc
+                '''
+            }
+        }
+
         stage('Install Helm') {
             steps {
                 sh '''
                 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
                 chmod 700 get_helm.sh
                 ./get_helm.sh
+                export PATH=/usr/local/bin:$PATH
+                echo "export PATH=/usr/local/bin:$PATH" >> ~/.bashrc
                 '''
             }
         }
@@ -147,7 +162,10 @@ pipeline {
 
         stage('Verify Kubernetes Connection') {
             steps {
-                sh 'kubectl get nodes'
+                sh '''
+                export PATH=$HOME/bin:$PATH
+                kubectl get nodes
+                '''
             }
         }
 
@@ -163,10 +181,11 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                sh 'kubectl get pods -n $NAMESPACE'
+                sh '''
+                kubectl get pods -n $NAMESPACE
+                '''
             }
         }
-
     }
 
 }
