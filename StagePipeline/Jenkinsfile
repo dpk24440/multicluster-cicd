@@ -130,10 +130,10 @@ pipeline {
         stage('Install kubectl') {
             steps {
                 sh '''
-                mkdir -p $JENKINS_BIN
+                mkdir -p "$JENKINS_BIN"  # ✅ Ensure directory is created correctly
                 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
                 chmod +x kubectl
-                mv kubectl $JENKINS_BIN/
+                mv kubectl "$JENKINS_BIN/"
                 echo "export PATH=$JENKINS_BIN:$PATH" >> ~/.bashrc
                 export PATH=$JENKINS_BIN:$PATH
                 '''
@@ -143,10 +143,10 @@ pipeline {
         stage('Install Helm') {
             steps {
                 sh '''
-                mkdir -p $JENKINS_BIN
+                mkdir -p "$JENKINS_BIN"
                 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
                 chmod 700 get_helm.sh
-                ./get_helm.sh --no-sudo --bin $JENKINS_BIN
+                ./get_helm.sh --no-sudo --bin "$JENKINS_BIN"
                 echo "export PATH=$JENKINS_BIN:$PATH" >> ~/.bashrc
                 export PATH=$JENKINS_BIN:$PATH
                 '''
@@ -157,7 +157,7 @@ pipeline {
             steps {
                 sh '''
                 export PATH=$JENKINS_BIN:$PATH
-                aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+                aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER"
                 '''
             }
         }
@@ -175,9 +175,9 @@ pipeline {
             steps {
                 sh '''
                 export PATH=$JENKINS_BIN:$PATH
-                helm upgrade --install $RELEASE_NAME $CHART_PATH \
-                --namespace $NAMESPACE \
-                --set appimage=$appRegistry,apptag=$BUILD_NUMBER
+                helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
+                --namespace "$NAMESPACE" \
+                --set appimage="$appRegistry",apptag="$BUILD_NUMBER"
                 '''
             }
         }
@@ -186,7 +186,7 @@ pipeline {
             steps {
                 sh '''
                 export PATH=$JENKINS_BIN:$PATH
-                kubectl get pods -n $NAMESPACE
+                kubectl get pods -n "$NAMESPACE"
                 '''
             }
         }
