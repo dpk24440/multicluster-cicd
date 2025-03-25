@@ -126,14 +126,6 @@ pipeline {
             }
         }
 
-        stage('Install AWS CLI') {
-            steps {
-                sh '''
-                sudo apt-get update
-                sudo apt-get install -y awscli
-                '''
-            }
-        }
 
         stage('Install kubectl') {
             steps {
